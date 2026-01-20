@@ -4,7 +4,9 @@ This file contains guidelines and commands for agentic coding agents working in 
 
 ## Project Overview
 
-This is a Bun-based TypeScript project called apo2cdsp-parametriceq that parses EqualizerAPO parametric EQ filter data from text files and converts it to JSON format. The main functionality is in `index.ts` which reads filter specifications, extracts frequency/gain/Q values, and outputs them in a structured format.
+This is a Bun-based TypeScript project called `apo2cdsp-parametriceq` that parses EqualizerAPO parametric EQ filter data from text files and converts it to JSON format for use with cDSP (CamillaDSP).
+
+The project is structured with a main entry point in `index.ts` and supporting logic in the `lib/` directory.
 
 ## Build and Development Commands
 
@@ -16,30 +18,34 @@ This is a Bun-based TypeScript project called apo2cdsp-parametriceq that parses 
 
 ### Code Quality
 
-- **Lint code**: `bun run lint` (runs Biome check)
-- **Fix linting issues**: `bun run lint:fix` (runs Biome check --fix)
-- **Fix linting unsafely**: `bun run lint:fix-unsafe` (runs Biome check --fix --unsafe)
-- **Format code**: `bun run format` (runs Biome format)
-- **Format and fix**: `bun run format:fix` (runs Biome format --write)
+- **Lint and format check**: `bun run check` (runs Biome check)
+- **Fix issues**: `bun run check:fix` (runs Biome check --fix)
+- **Fix issues unsafely**: `bun run check:fix-unsafe` (runs Biome check --fix --unsafe)
+- **Type check**: `bun run typecheck`
 
 ### Running the Application
 
-- **Run main script**: `bun parse.ts`
-- **Run with TypeScript directly**: `bun run parse.ts`
+- **Run in development**: `bun run dev <input-file>` or `bun index.ts <input-file>`
+- **Build production executable**: `bun run build` (outputs to `dist/apo2cdsp`)
+
+### CLI Usage
+
+- **Input file**: The first positional argument is the input file path.
+- **Output file**: `-o <path>` or `--output <path>` to specify output JSON path.
+- **Validation only**: `--validate` to check input without writing output.
+- **Quiet mode**: `--quiet` to suppress success messages.
+- **Help/Version**: `-h`, `--help` or `-v`, `--version`.
 
 ### Testing
 
-No test framework is currently configured. Consider adding:
-
-- `bun add -d @types/bun` for Bun's test framework
-- `bun test` to run tests (once configured)
+- **Run tests**: `bun test`
 
 ## Code Style Guidelines
 
 ### TypeScript Configuration
 
-- Target: ESNext
-- Module: Preserve (for bundler compatibility)
+- Target: `ESNext`
+- Module: `Preserve` (for bundler compatibility)
 - Strict mode enabled
 - No implicit any, no unchecked indexed access
 - Use ESNext lib features
@@ -67,51 +73,38 @@ No test framework is currently configured. Consider adding:
 - **Variables/Functions**: camelCase
 - **Classes/Interfaces**: PascalCase
 - **Constants**: UPPER_SNAKE_CASE for truly constant values
-- **Files**: kebab-case for files, PascalCase for TypeScript files containing classes
-- **Interfaces**: Prefix with `I` only if necessary (prefer descriptive names)
+- **Files**: kebab-case for utility files, `index.ts` for entry point
 
 ### Code Structure
 
-- Use meaningful variable names, avoid single letters except for loop indices
-- Always use `const`/`let`, never `var`
-- Prefer async/await over promise chains
-- Use block statements for control flow (no single-line if/for)
-- Add JSDoc comments for complex functions or interfaces
+- Main logic resides in `index.ts` (CLI handling) and `lib/` (core logic)
+- `lib/fileUtils.ts`: Optimized file I/O operations (sync for small files, streams for large files)
+- `lib/parseFilters.ts`: Core parsing and validation logic
+- Use `Math.fround()` for 32-bit float precision consistency where required
+- Frequencies are rounded to integers in output
 
 ### Error Handling
 
-- Use try/catch blocks for file operations and external calls
-- Prefer specific error types over generic `Error`
-- Use appropriate console methods: `console.error()` for errors, `console.info()` for success messages
-- Include context in error messages
-
-### Type Safety
-
-- Enable strict TypeScript mode
-- Use interfaces for object shapes
-- Prefer explicit return types for public functions
-- Use `Math.fround()` for 32-bit float precision when needed (as seen in parse.ts)
-- Use type guards for runtime type checking
-
-### File Organization
-
-- Keep main logic in root `parse.ts` for this simple project
-- Add utility functions to separate files if the project grows
-- Use absolute paths with `path.join(__dirname, ...)` for file operations
-- Separate data structures (interfaces) from implementation
+- Use custom error classes (e.g., `ParseError`) for domain-specific errors
+- Use `try/catch` blocks in the CLI entry point to provide user-friendly error messages
+- Use `chalk` for colorized console output (Red for errors, Green for success, Yellow/Blue for info)
 
 ## Development Workflow
 
-1. Always run `bun run lint:fix` before committing
+1. Always run `bun run check:fix` before committing
 2. Test the main script with sample data before changes
 3. Check that output JSON format matches expected structure
 4. Verify file paths and error handling
-5. Use `bun run format:fix` to maintain consistent formatting
+5. Ensure exactly 10 filters are present in the input as required by the parser
 
 ## Project-Specific Notes
 
-- The parser expects filter data in format: "Filter <id>: <state> <type> Fc <freq> Hz Gain <gain> dB Q <q>"
-- Output maps to specific index ranges: 0-9 (gain), 10-19 (frequency), 20-29 (Q factor)
-- Uses `Math.fround()` for 32-bit float precision consistency
-- Frequencies are rounded to integers in output
-- Input file: `filters.txt`, Output file: `output`
+- The parser expects filter data in format: `"Filter <id>: <state> <type> Fc <freq> Hz Gain <gain> dB Q <q>"`
+- Preamp lines are automatically stripped before parsing.
+- Output maps to specific index ranges: 
+    - `0-9`: Gain (32-bit float, using `Math.fround`)
+    - `10-19`: Frequency (integer, using `Math.round`)
+    - `20-29`: Q factor (high precision float, rounded to 14 decimal places using `PRECISION_MULTIPLIER = 100000000000000`)
+    - `30-49`: Static configuration values (indices 30-49 and 1024)
+- Maximum supported file size: 10MB
+- Stream threshold for file I/O: 1MB
