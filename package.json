@@ -1,0 +1,43 @@
+{
+  "name": "apo2cdsp-parametriceq",
+  "version": "1.0.0",
+  "description": "CLI tool to parse EqualizerAPO parametric EQ filter data and convert it to JSON format",
+  "main": "dist/apo2cdsp",
+  "bin": {
+    "apo2cdsp": "dist/apo2cdsp"
+  },
+  "scripts": {
+    "build": "bun build --compile --minify --target bun index.ts --outfile dist/apo2cdsp",
+    "dev": "bun index.ts",
+    "lint": "biome check",
+    "lint:fix": "biome check --fix",
+    "lint:fix-unsafe": "biome check --fix --unsafe",
+    "format": "biome format",
+    "format:fix": "biome format --write",
+    "clean": "rm -f apo2cdsp && rm -rf dist",
+    "typecheck": "bun tsc --noEmit",
+    "test": "bun test",
+    "watch": "bun --watch index.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@biomejs/biome": "^2.3.11",
+    "chalk": "^5.6.2"
+  },
+  "keywords": [
+    "equalizer",
+    "apo",
+    "parametric",
+    "eq",
+    "cli",
+    "audio",
+    "dsp"
+  ],
+  "author": "",
+  "license": "MIT"
+}
